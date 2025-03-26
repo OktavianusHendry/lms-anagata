@@ -47,6 +47,8 @@ jobs:
           echo "DB_USERNAME=testuser" >> .env
           echo "DB_PASSWORD=testpass" >> .env
 
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+
           php artisan key:generate
           php artisan migrate:fresh --force
           php artisan db:seed --class=RoleSeeder
