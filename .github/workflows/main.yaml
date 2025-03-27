@@ -1,4 +1,4 @@
-name: Run tests
+name: Run tests and deploy
 
 on: [push]
 
@@ -32,10 +32,10 @@ jobs:
           php-version: "8.2"
           extensions: pdo, pdo_mysql
 
-      - name: Install dependencies
+      - name: Install PHP dependencies
         run: composer install -n --prefer-dist
 
-      - name: Prepare test env
+      - name: Setup Laravel test environment
         run: |
           cp .env.ci .env
           php artisan key:generate
@@ -47,11 +47,30 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    needs: test # deploy only if tests succeed
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup PHP (for frontend scaffolding if needed)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets using Vite
+        run: npm run build
+
+      - name: Install PHP dependencies for production
+        run: composer install --no-dev --optimize-autoloader
 
       - name: Deploy Laravel backend to /laravel_lms/
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -62,5 +81,9 @@ jobs:
           server-dir: /public_html/lms-test.oktavianus.xyz/
           local-dir: ./
           exclude: |
-            **/vendor/**
+            **/node_modules/**
+            **/tests/**
             .env
+            .env.ci
+            .gitignore
+            README.md
